@@ -1,10 +1,10 @@
 /*
- * Copyright 2016-2020, Cypress Semiconductor Corporation or a subsidiary of
- * Cypress Semiconductor Corporation. All Rights Reserved.
+ * Copyright 2016-2021, Cypress Semiconductor Corporation (an Infineon company) or
+ * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
- * materials ("Software"), is owned by Cypress Semiconductor Corporation
- * or one of its subsidiaries ("Cypress") and is protected by and subject to
+ * materials ("Software") is owned by Cypress Semiconductor Corporation
+ * or one of its affiliates ("Cypress") and is protected by and subject to
  * worldwide patent protection (United States and foreign),
  * United States copyright laws and international treaty provisions.
  * Therefore, you may use this Software only as provided in the license
@@ -13,7 +13,7 @@
  * If no EULA applies, Cypress hereby grants you a personal, non-exclusive,
  * non-transferable license to copy, modify, and compile the Software
  * source code solely for use in connection with Cypress's
- * integrated circuit products. Any reproduction, modification, translation,
+ * integrated circuit products.  Any reproduction, modification, translation,
  * compilation, or representation of this Software except as specified
  * above is prohibited without the express written permission of Cypress.
  *
@@ -339,6 +339,8 @@ void mesh_app_hardware_init(void)
  */
 void mesh_app_attention(uint8_t element_idx, uint8_t time)
 {
+    wiced_result_t status;
+
     WICED_BT_TRACE("smart light attention:%d sec\n", time);
 
     // If time is zero, stop alerting and restore the last known brightness
@@ -348,7 +350,11 @@ void mesh_app_attention(uint8_t element_idx, uint8_t time)
         led_control_set_brighness_level(last_known_brightness);
         return;
     }
-    wiced_start_timer(&attention_timer, 1);
+    status = wiced_start_timer(&attention_timer, 1);
+    if (status != WICED_SUCCESS)
+    {
+        WICED_BT_TRACE("%s: wiced_start_timer failed, status:%d \n", __func__, status);
+    }
     attention_time = time;
     attention_brightness = (last_known_brightness != 0) ? 0 : 100;
     led_control_set_brighness_level(attention_brightness);
