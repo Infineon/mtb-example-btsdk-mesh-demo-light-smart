@@ -339,8 +339,6 @@ void mesh_app_hardware_init(void)
  */
 void mesh_app_attention(uint8_t element_idx, uint8_t time)
 {
-    wiced_result_t status;
-
     WICED_BT_TRACE("smart light attention:%d sec\n", time);
 
     // If time is zero, stop alerting and restore the last known brightness
@@ -350,11 +348,7 @@ void mesh_app_attention(uint8_t element_idx, uint8_t time)
         led_control_set_brighness_level(last_known_brightness);
         return;
     }
-    status = wiced_start_timer(&attention_timer, 1);
-    if (status != WICED_SUCCESS)
-    {
-        WICED_BT_TRACE("%s: wiced_start_timer failed, status:%d \n", __func__, status);
-    }
+    wiced_start_timer(&attention_timer, 1);
     attention_time = time;
     attention_brightness = (last_known_brightness != 0) ? 0 : 100;
     led_control_set_brighness_level(attention_brightness);
