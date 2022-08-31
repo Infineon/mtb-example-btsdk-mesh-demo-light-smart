@@ -35,7 +35,7 @@
  *
  * This Light Smart demo application shows a simple implementation of a Light
  * Controller.The app is based on the snip/mesh/mesh_light_lc sample which
- * implements BLE Mesh Light LC (Lightness Control) Server model. As a Light LC
+ * implements LE Mesh Light LC (Lightness Control) Server model. As a Light LC
  * device, the Light Smart application allows two types of the controls
  * depending on the Light LC Mode state. If Light LC Mode is on the,
  * application is controlled by the occupancy sensor input and can be also
@@ -85,7 +85,6 @@ extern wiced_bt_cfg_settings_t wiced_bt_cfg_settings;
  ******************************************************/
 #define MESH_PID                0x310D
 #define MESH_VID                0x0002
-#define MESH_CACHE_REPLAY_SIZE  0x0008
 
 /******************************************************
  *          Structures
@@ -98,7 +97,7 @@ static void mesh_app_init(wiced_bool_t is_provisioned);
 static void mesh_app_hardware_init(void);
 static void mesh_app_attention(uint8_t element_idx, uint8_t time);
 static void mesh_app_message_handler(uint8_t element_idx, uint16_t event, void *p_data);
-static void mesh_app_process_set_level(uint8_t element_idx, wiced_bt_mesh_light_lightness_status_t *p_data);
+static void mesh_app_process_level_status(uint8_t element_idx, wiced_bt_mesh_light_lightness_status_t *p_data);
 static void mesh_app_process_sensor_status(uint8_t element_idx, wiced_bt_mesh_sensor_status_data_t *p_data);
 
 static void button_interrupt_handler(void* user_data, uint8_t value);
@@ -208,7 +207,6 @@ wiced_bt_mesh_core_config_t  mesh_config =
     .company_id         = MESH_COMPANY_ID_CYPRESS,                  // Company identifier assigned by the Bluetooth SIG
     .product_id         = MESH_PID,                                 // Vendor-assigned product identifier
     .vendor_id          = MESH_VID,                                 // Vendor-assigned product version identifier
-    .replay_cache_size  = MESH_CACHE_REPLAY_SIZE,                   // Number of replay protection entries, i.e. maximum number of mesh devices that can send application messages to this device.
 #if defined(LOW_POWER_NODE) && (LOW_POWER_NODE == 1)
     .features           = WICED_BT_MESH_CORE_FEATURE_BIT_LOW_POWER, // A bit field indicating the device features. In Low Power mode no Relay, no Proxy and no Friend
     .friend_cfg         =                                           // Empty Configuration of the Friend Feature
@@ -324,9 +322,6 @@ void mesh_app_hardware_init(void)
 #if defined(CYW20706A2)
     wiced_hal_gpio_configure_pin(WICED_GPIO_BUTTON, WICED_GPIO_BUTTON_SETTINGS(GPIO_EN_INT_BOTH_EDGE), WICED_GPIO_BUTTON_DEFAULT_STATE);
     wiced_hal_gpio_register_pin_for_interrupt(WICED_GPIO_BUTTON, button_interrupt_handler, NULL);
-#elif (defined(CYW20735B0) || defined(CYW20719B0) || defined(CYW20721B0))
-    wiced_hal_gpio_register_pin_for_interrupt(WICED_GPIO_PIN_BUTTON, button_interrupt_handler, NULL);
-    wiced_hal_gpio_configure_pin(WICED_GPIO_PIN_BUTTON, WICED_GPIO_BUTTON_SETTINGS, GPIO_PIN_OUTPUT_LOW);
 #else
     wiced_platform_register_button_callback(WICED_PLATFORM_BUTTON_1, button_interrupt_handler, NULL, GPIO_EN_INT_BOTH_EDGE);
     button_previous_value = platform_button[WICED_PLATFORM_BUTTON_1].default_state;
@@ -379,8 +374,8 @@ void mesh_app_message_handler(uint8_t element_idx, uint16_t event, void *p_data)
 {
     switch (event)
     {
-    case WICED_BT_MESH_LIGHT_LIGHTNESS_SET:
-        mesh_app_process_set_level(element_idx, (wiced_bt_mesh_light_lightness_status_t *)p_data);
+    case WICED_BT_MESH_LIGHT_LIGHTNESS_STATUS:
+        mesh_app_process_level_status(element_idx, (wiced_bt_mesh_light_lightness_status_t *)p_data);
         break;
 
     case WICED_BT_MESH_SENSOR_STATUS:
@@ -396,7 +391,7 @@ void mesh_app_message_handler(uint8_t element_idx, uint16_t event, void *p_data)
 /*
  * Command from the level client is received to set the new level
  */
-void mesh_app_process_set_level(uint8_t element_idx, wiced_bt_mesh_light_lightness_status_t *p_status)
+void mesh_app_process_level_status(uint8_t element_idx, wiced_bt_mesh_light_lightness_status_t *p_status)
 {
     WICED_BT_TRACE("mesh light srv set level element:%d present actual:%d linear:%d remaining_time:%d\n",
         element_idx, p_status->lightness_actual_present, p_status->lightness_linear_present, p_status->remaining_time);
